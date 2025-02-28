@@ -1,0 +1,5 @@
+*.env
+*.venv
+usage_openai.json
+*.tsv
+*.lock

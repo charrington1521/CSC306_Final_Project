@@ -3,3 +3,6 @@
 usage_openai.json
 *.tsv
 *.lock
+__pycache__
+submissions
+semeval_test

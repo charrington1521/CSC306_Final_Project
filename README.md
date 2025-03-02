@@ -26,7 +26,39 @@
 
       pip install -r requirements.txt
 
-### 2- Create a github branch for your work
+### 2- Download the Test Data
+
+**Assumes a non-Mac OS**
+
+- Visit [https://drive.google.com/file/d/1IpSi0gNPYj9a9lNbWPsL3TxIBILoLsfE/view](this link) to download competition.zip
+
+- Visit [https://github.com/jorses/databench_eval/blob/main/examples/answers.zip](this repo) and select "View raw" to download answers.zip
+
+- Move both of these to an appropriate location.
+
+- Extract both zip files. Rename competition/competition to semeval_test. Move semeval_test outside of the competition folder. Move answers inside this semeval_test folder. 
+
+- You may now delete the .zip files and the competition folder as well as the __MACOSX folder within semeval_test/answers.
+
+When complete it should match the form
+
+<pre>
+📦semeval_test
+ ┣ 📂066_IBM_HR
+ ┃ ┣ 📜.DS_Store
+ ┃ ┣ 📜all.parquet
+ ┃ ┗ 📜sample.parquet
+ ┣ 📂. . .
+ ┣ 📂answers
+ ┃ ┣ 📜answers.txt
+ ┃ ┣ 📜answers_lite.txt
+ ┃ ┗ 📜semantics.txt
+ ┣ 📜.DS_Store
+ ┣ 📜README.md
+ ┗ 📜test_qa.csv
+ </pre>
+
+### 3- Create a github branch for your work
 
 **In VS Code**
 -   with project folder open:
@@ -37,3 +69,18 @@
 
     Now when changes are committed AND pushed a merge request can be created at the Github repo
 
+## Implementation
+
+### 1- Replication
+
+**PromptGenModel**
+
+The two baselines defined in the paper TODO ADD PAPER LINK are both
+prompt generation based models. That is, the models are given a question and a table and use the info to generate a prompt for an LLM. In our case this is hooked up to ChatGpt3.5-Turbo.
+This means all PromptGenerationModel models we create have a method "generate_prompt" that can be called during evaluation using tools provided by the shared task. This makes the task of implementing baselines straightforward: complete the "generate_prompt" methods.
+We will be doing this for the two baselines from the paper: Zero-shot In-Context Learning and Code Based. 
+Both of these baselines will be included in out "PromptGenModels.py" module
+
+- Zero-shot In-Context Learning
+
+- Code Based PrompGenModel

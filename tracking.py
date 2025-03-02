@@ -1,4 +1,4 @@
-'''AUTHOR: NOT US
+'''AUTHOR: NOT US @TODO: Fill out author info at the top. Generate citation for this file.
 '''
 from __future__ import annotations
 from math import nan

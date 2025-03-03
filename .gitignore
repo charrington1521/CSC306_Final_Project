@@ -6,3 +6,4 @@ usage_openai.json
 __pycache__
 submissions
 semeval_test
+\venv

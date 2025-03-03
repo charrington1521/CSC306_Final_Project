@@ -16,11 +16,11 @@
 **In Terminal**
 - navigate to the project folder
     
-      cd \[path_to_project_folder]
+      cd [path_to_project_folder]
 
 - activate the virtual environment
     
-      source \[path_to_venv]/bin/activate
+      source [path_to_venv]/bin/activate
 
 - install reqs
 
@@ -30,9 +30,9 @@
 
 **Assumes a non-Mac OS**
 
-- Visit [https://drive.google.com/file/d/1IpSi0gNPYj9a9lNbWPsL3TxIBILoLsfE/view](this link) to download competition.zip
+- Visit [this link](https://drive.google.com/file/d/1IpSi0gNPYj9a9lNbWPsL3TxIBILoLsfE/view) to download competition.zip
 
-- Visit [https://github.com/jorses/databench_eval/blob/main/examples/answers.zip](this repo) and select "View raw" to download answers.zip
+- Visit [this repo](https://github.com/jorses/databench_eval/blob/main/examples/answers.zip) and select "View raw" to download answers.zip
 
 - Move both of these to an appropriate location.
 
@@ -79,7 +79,7 @@ The two baselines defined in the paper TODO ADD PAPER LINK are both
 prompt generation based models. That is, the models are given a question and a table and use the info to generate a prompt for an LLM. In our case this is hooked up to ChatGpt3.5-Turbo.
 This means all PromptGenerationModel models we create have a method "generate_prompt" that can be called during evaluation using tools provided by the shared task. This makes the task of implementing baselines straightforward: complete the "generate_prompt" methods.
 We will be doing this for the two baselines from the paper: Zero-shot In-Context Learning and Code Based. 
-Both of these baselines will be included in out "PromptGenModels.py" module
+Both of these baselines will be included in our "PromptGenModels.py" module
 
 - Zero-shot In-Context Learning
 

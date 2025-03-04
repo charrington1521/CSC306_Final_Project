@@ -2,7 +2,7 @@ from datasets import load_dataset, DatasetDict, Dataset
 from databench_eval import Runner, Evaluator
 from databench_eval.utils import load_qa, load_table, load_sample
 from PromptGenModels import PromptGenModel
-from completion import complete
+from completion import call_llm
 from dotenv import get_key
 from os import getcwd
 import pandas as pd
@@ -66,10 +66,10 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
         for this module
     '''
     runner = Runner(
-        model_call = complete,
+        model_call = call_llm,
         prompt_generator = model.generate_prompt,
         qa=qa,
-        batch_size=10
+        batch_size=10,
     )
 
     if save: #@TODO: add a runner_lite to follow submission format for task

@@ -45,7 +45,7 @@ class CompetitionBaseline(PromptGenModel):
             dataset = row["dataset"]
             question = row["question"]
             df = our_load_sample(dataset)
-            return f'''
+            return f"""
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
         * You only have access to pandas and numpy.
@@ -63,15 +63,15 @@ class CompetitionBaseline(PromptGenModel):
 
         # This is an example
         def example(df: pd.DataFrame):
-            """Returns the answer to the question: How many rows are there in the dataframe? """
+            '''Returns the answer to the question: How many rows are there in the dataframe? '''
             df.columns = {list(df.columns)}
             return df.shape[0]
 
         # This is the question you have to answer
         def answer(df: pd.DataFrame):
-            """Returns the answer to the question: {question} """
+            '''Returns the answer to the question: {question} '''
             df.columns = {list(df.columns)}
-            return'''
+            return"""
 
 class ZiCL(PromptGenModel):
 
@@ -79,7 +79,7 @@ class ZiCL(PromptGenModel):
         dataset = row["dataset"]
         question = row["question"]
         df = our_load_sample(dataset)
-        return f'''
+        return f"""
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
         * You only have access to pandas and numpy.
@@ -97,15 +97,15 @@ class ZiCL(PromptGenModel):
 
         # This is an example
         def example(df: pd.DataFrame):
-            """Returns the answer to the question: How many rows are there in the dataframe? """
+            '''Returns the answer to the question: How many rows are there in the dataframe? '''
             df.columns = {list(df.columns)}
             return df.shape[0]
 
         # This is the question you have to answer
         def answer(df: pd.DataFrame):
-            """Returns the answer to the question: {question} """
+            '''Returns the answer to the question: {question} '''
             df.columns = {list(df.columns)}
-            return'''
+            return"""
     
 class CodeBased(PromptGenModel):
 

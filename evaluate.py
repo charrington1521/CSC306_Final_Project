@@ -68,7 +68,7 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
     runner = Runner(
         model_call = complete,
         prompt_generator = model.generate_prompt,
-        qa=qa_df,
+        qa=qa,
         batch_size=10
     )
 

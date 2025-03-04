@@ -52,7 +52,7 @@ qa_df["sample_answer"] = sample_answers
 qa_df["type"] = semantics
 
 ### Evaluation Implementation #################################################
-evaluator = Evaluator.eval(qa=qa_df)
+evaluator = Evaluator(qa=qa_df)
 
 #@TODO: allow evaluate model to use datasets other than the test data
 #@TODO: custom save_path as an argument instead?

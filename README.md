@@ -58,7 +58,15 @@ When complete it should match the form
  ┗ 📜test_qa.csv
  </pre>
 
-### 3- Create a github branch for your work
+### 3- .env Variables
+
+**There are two .env variables to run this project**
+
+- TEST_PATH: The path at which semeval_test was downloaded
+
+- OPENAI_API_KEY: a valid key to use OpenAI
+
+### 4- Create a github branch for your work
 
 **In VS Code**
 -   with project folder open:
@@ -92,3 +100,7 @@ This file comes from [this link](https://github.com/jorses/databench_eval/blob/m
 **tracking.py**
 
 This file comes from the last project. It is only added so that we can check our usage.
+
+
+#TODO Whitelist the gitignore file
+

@@ -89,5 +89,22 @@ class ZiCL(PromptGenModel):
     
 class CodeBased(PromptGenModel):
 
-    def generate_prompt(self, row: dict) -> str:
-        return super().generate_prompt()
+    def generate_prompt(row: dict) -> str:
+        dataset = row["dataset"]
+        question = row["question"]
+        df = load_sample(dataset)
+
+        datatypes = ""
+        for column, dtype in df.dtypes.items():
+            datatypes.join(f"'{column}' dtype('{dtype}')\n")
+
+        toReturn = f'''
+        import pandas as pd
+        import numpy as np
+        def answer (df) -> bool :
+            """The df dtypes are:\n
+            {datatypes}
+            Returns: {question}"""
+        '''
+
+        return toReturn

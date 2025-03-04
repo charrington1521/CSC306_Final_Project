@@ -8,3 +8,5 @@ submissions
 semeval_test
 *\venv
 sandbox.ipynb
+*semeval_test
+experiment.ipynb

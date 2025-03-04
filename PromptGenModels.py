@@ -55,7 +55,7 @@ class CompetitionBaseline(PromptGenModel):
 
 class ZiCL(PromptGenModel):
 
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
         df = load_sample(dataset)
@@ -89,7 +89,7 @@ class ZiCL(PromptGenModel):
     
 class CodeBased(PromptGenModel):
 
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
         df = load_sample(dataset)

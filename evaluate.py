@@ -31,13 +31,13 @@ if save_path == None:
 ### Initialize the Test Data ##################################################
 qa_df = pd.DataFrame()
 
-with open(test_path+"answers.txt", "r") as f:
+with open(test_path+"answers/answers.txt", "r") as f:
     answers = f.read().splitlines()
 
-with open(test_path+"answers_lite.txt", "r") as f:
+with open(test_path+"answers/answers_lite.txt", "r") as f:
     sample_answers = f.read().splitlines()
 
-with open(test_path+"semantics.txt", "r") as f:
+with open(test_path+"answers/semantics.txt", "r") as f:
     semantics = f.read().splitlines()
 
 try:

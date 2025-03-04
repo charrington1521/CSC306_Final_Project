@@ -4,8 +4,11 @@ from databench_eval.utils import load_sample
 
 class PromptGenModel(Model):
 
+    def __init(self):
+        pass
+
     @abstractmethod
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
         '''Given a question and a table outputs a prompt
         @param question: The question about table
         @param table: The table in question
@@ -18,7 +21,7 @@ class PromptGenModel(Model):
 
 class CompetitionBaseline(PromptGenModel):
 
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
             dataset = row["dataset"]
             question = row["question"]
             df = load_sample(dataset)
@@ -52,10 +55,10 @@ class CompetitionBaseline(PromptGenModel):
 
 class ZiCL(PromptGenModel):
 
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
         return super().generate_prompt()
     
 class CodeBased(PromptGenModel):
 
-    def generate_prompt(row: dict) -> str:
+    def generate_prompt(self, row: dict) -> str:
         return super().generate_prompt()

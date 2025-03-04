@@ -53,7 +53,7 @@ qa_df["type"] = semantics
 
 ### Evaluation Implementation #################################################
 qa = Dataset.from_pandas(qa_df)
-evaluator = Evaluator(qa=qa_df)
+evaluator = Evaluator(qa=qa)
 
 #@TODO: allow evaluate model to use datasets other than the test data
 #@TODO: custom save_path as an argument instead?

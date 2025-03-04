@@ -1,6 +1,6 @@
 from datasets import load_dataset, DatasetDict, Dataset
 from databench_eval import Runner, Evaluator
-from databench_eval.utils import load_qa, load_table
+from databench_eval.utils import load_qa, load_table, load_sample
 from PromptGenModels import PromptGenModel
 from completion import complete
 from dotenv import get_key

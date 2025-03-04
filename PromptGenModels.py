@@ -1,7 +1,27 @@
 from Model import Model
 from abc import abstractmethod
+import pandas as pd
+from dotenv import get_key
 from databench_eval.utils import load_sample
 
+test_path = get_key('.env', 'TEST_PATH')
+
+if test_path == None:
+    raise(
+        Exception(
+            '''No test path has been defined. Download the test data at 
+            https://drive.google.com/file/d/1IpSi0gNPYj9a9lNbWPsL3TxIBILoLsfE/
+            view and add the path to it to your .env file.
+            '''
+            )
+        )
+
+def our_load_sample(name: any) -> pd.DataFrame:
+    try:
+        load_sample(name)
+    except:
+        return pd.read_parquet(f"{test_path}{name}/sample.parquet")
+    
 class PromptGenModel(Model):
 
     def __init(self):
@@ -24,7 +44,7 @@ class CompetitionBaseline(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
             dataset = row["dataset"]
             question = row["question"]
-            df = load_sample(dataset)
+            df = our_load_sample(dataset)
             return f'''
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
@@ -58,7 +78,7 @@ class ZiCL(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = load_sample(dataset)
+        df = our_load_sample(dataset)
         return f'''
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
@@ -92,7 +112,7 @@ class CodeBased(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = load_sample(dataset)
+        df = our_load_sample(dataset)
 
         datatypes = ""
         for column, dtype in df.dtypes.items():

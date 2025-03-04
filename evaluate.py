@@ -1,4 +1,4 @@
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset, DatasetDict, Dataset
 from databench_eval import Runner, Evaluator
 from databench_eval.utils import load_qa, load_table
 from PromptGenModels import PromptGenModel
@@ -52,6 +52,7 @@ qa_df["sample_answer"] = sample_answers
 qa_df["type"] = semantics
 
 ### Evaluation Implementation #################################################
+qa = Dataset.from_pandas(qa_df)
 evaluator = Evaluator(qa=qa_df)
 
 #@TODO: allow evaluate model to use datasets other than the test data

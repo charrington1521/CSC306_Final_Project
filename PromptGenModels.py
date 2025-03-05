@@ -79,33 +79,28 @@ class ZiCL(PromptGenModel):
         dataset = row["dataset"]
         question = row["question"]
         df = our_load_sample(dataset)
-        return f"""
-        You are a pandas code generator. Your goal is to complete the function provided.
-        * You must not write any more code apart from that.
-        * You only have access to pandas and numpy.
-        * Pay attention to the type formatting .
-        * You cannot read files from disk.
-        * The answer should be short and concise, in the format I specify.
-        * DO NOT do anything else other than filling the function provided.
-        * Answer in one of the following formats, depending on the question
-            1. True/False (do not answer with np.True_ or np.False_, but rather True or False)
-            2. with a value from the dataframe, (category/number)
-            3. with a list of values (either categories or numbers)
-
-        import pandas as pd
-        import numpy as np
-
-        # This is an example
-        def example(df: pd.DataFrame):
-            '''Returns the answer to the question: How many rows are there in the dataframe? '''
-            df.columns = {list(df.columns)}
-            return df.shape[0]
-
-        # This is the question you have to answer
-        def answer(df: pd.DataFrame):
-            '''Returns the answer to the question: {question} '''
-            df.columns = {list(df.columns)}
-            return"""
+        return """
+        You are an assistant tasked with answer-
+        ing the questions asked of a given CSV in
+        JSON format. You must answer in a single
+        JSON with three fields:
+        * "answer": answer using information from
+        the provided CSV only.
+        * "columns_used": list of columns from the
+        CSV used to get the answer.
+        * "explanation": A short explanation on why
+        you gave that answer.
+        Requirements:
+        * Only respond with the JSON.
+        In the following CSV
+        “csv
+        passenger,wealth($)
+        value1,value2.
+        “
+        USER: What is the name of the richest pas-
+        senger?
+        ASSISTANT: {"answer:̈
+        """
     
 class CodeBased(PromptGenModel):
 

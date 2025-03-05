@@ -75,6 +75,8 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
     if save: #@TODO: add a runner_lite to follow submission format for task
         model_name = model.__class__.__name__
         path = f"{save_path}{model_name}_predictions.txt"
+        with open(path, "tr") as f:
+            pass
         responses = runner.run(save=path)
     else:
         responses = runner.run()

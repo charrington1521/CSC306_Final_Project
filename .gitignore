@@ -1,12 +1,5 @@
-*.env
-*.venv
-usage_openai.json
-*.tsv
-*.lock
-__pycache__
-submissions
-semeval_test
-*\venv
-sandbox.ipynb
-*semeval_test
-experiment.ipynb
+*
+.*/
+
+!.gitignore
+

@@ -24,7 +24,7 @@ def our_load_sample(name: any) -> pd.DataFrame:
     
 class PromptGenModel(Model):
 
-    def __init(self):
+    def __init__(self):
         pass
 
     @abstractmethod

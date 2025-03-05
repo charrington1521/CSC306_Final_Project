@@ -24,7 +24,7 @@ def our_load_sample(name: any) -> pd.DataFrame:
     
 class PromptGenModel(Model):
 
-    def __init(self):
+    def __init__(self):
         pass
 
     @abstractmethod
@@ -79,7 +79,8 @@ class ZiCL(PromptGenModel):
         dataset = row["dataset"]
         question = row["question"]
         df = our_load_sample(dataset)
-        return """
+        csv = df.to_csv()
+        return f"""
         You are an assistant tasked with answer-
         ing the questions asked of a given CSV in
         JSON format. You must answer in a single
@@ -93,13 +94,12 @@ class ZiCL(PromptGenModel):
         Requirements:
         * Only respond with the JSON.
         In the following CSV
-        “csv
+        “{csv}
         passenger,wealth($)
         value1,value2.
         “
-        USER: What is the name of the richest pas-
-        senger?
-        ASSISTANT: {"answer:̈
+        USER: {question}
+        ASSISTANT: {{"answer:̈
         """
     
 class CodeBased(PromptGenModel):

@@ -25,7 +25,7 @@ save_path = get_key('.env', 'SAVE_PATH')
 
 if save_path == None:
     print("Save path was undefined, defaulting to current working directory.")
-    save_path = getcwd()
+    save_path = getcwd()+"/submissions/"
 
 
 ### Initialize the Test Data ##################################################
@@ -75,8 +75,14 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
     if save: #@TODO: add a runner_lite to follow submission format for task
         model_name = model.__class__.__name__
         path = f"{save_path}{model_name}_predictions.txt"
-        with open(path, "tr") as f:
-            pass
+        try:
+            with open(path, "w+") as f:
+                pass
+        except:
+            raise(f"""Ensure your save path is correct.\n
+                     Current Save path: {save_path}\n
+                     Ensure you have a "submissions" folder if 
+                     using the default save path""")
         responses = runner.run(save=path)
     else:
         responses = runner.run()

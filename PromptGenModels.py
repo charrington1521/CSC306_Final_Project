@@ -113,7 +113,7 @@ class CodeBased(PromptGenModel):
         for column, dtype in df.dtypes.items():
             datatypes.join(f"'{column}' dtype('{dtype}')\n")
 
-        toReturn = f'''
+        toReturn = f'''        
         import pandas as pd
         import numpy as np
         def answer (df) -> bool :

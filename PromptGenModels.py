@@ -1,6 +1,7 @@
 from Model import Model
 from abc import abstractmethod
 import pandas as pd
+import numpy as np
 from dotenv import get_key
 from databench_eval.utils import load_sample
 
@@ -113,13 +114,42 @@ class CodeBased(PromptGenModel):
         for column, dtype in df.dtypes.items():
             datatypes.join(f"'{column}' dtype('{dtype}')\n")
 
-        toReturn = f'''        
+        toReturn = f'''
+        You are a pandas code generator. Your goal is to complete the function provided.
+        * You must not write any more code apart from that.
+        * You only have access to pandas and numpy.
+        * Pay attention to the type formatting.
+        * You cannot read files from disk.
+
         import pandas as pd
         import numpy as np
-        def answer (df) -> bool :
+        def answer (df):
             """The df dtypes are:\n
             {datatypes}
             Returns: {question}"""
         '''
 
         return toReturn
+    
+
+    def example_postprocess(response: str, dataset: str, loader):
+        try:
+            df = loader(dataset)
+            global ans
+            lead = """def answer(df):\n return """
+            exec_string = (
+                lead
+                + response.split("return")[1].split("\n")[0].strip().replace("[end of text]", "")
+                + "\nans = answer(df)"
+            )
+            local_vars = {"df": df, "pd": pd, "np": np}
+            exec(exec_string, local_vars)
+
+            ans = local_vars['ans']
+            if isinstance(ans, pd.Series):
+                ans = ans.tolist()
+            elif isinstance(ans, pd.DataFrame):
+                ans = ans.iloc[:, 0].tolist()
+            return ans.split('\n')[0] if '\n' in str(ans) else ans
+        except Exception as e:
+            return f"__CODE_ERROR__: {e}"

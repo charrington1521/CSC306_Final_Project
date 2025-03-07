@@ -40,6 +40,9 @@ class PromptGenModel(Model):
 
         pass
 
+    def postprocess(self, response: str, row: dict): 
+        pass
+
 class CompetitionBaseline(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
@@ -112,39 +115,46 @@ class CodeBased(PromptGenModel):
 
         datatypes = ""
         for column, dtype in df.dtypes.items():
-            datatypes.join(f"'{column}' dtype('{dtype}')\n")
+            datatypes += (f"'{column}' dtype('{dtype}')\n")
 
         toReturn = f'''
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
         * You only have access to pandas and numpy.
+        * You only generate one function
         * Pay attention to the type formatting.
         * You cannot read files from disk.
 
+        The dtypes of the given input df are:\n
+        {datatypes}
+
+        You should complete the following code without changing it so that it gives the right answer for "{question}".
+        
+        # Code you need to complete
         import pandas as pd
         import numpy as np
         def answer (df):
-            """The df dtypes are:\n
-            {datatypes}
-            Returns: {question}"""
+            return 
         '''
-
         return toReturn
     
 
-    def example_postprocess(response: str, dataset: str, loader):
+    def postprocess(self, response: str, dataset: str, load_table=our_load_sample):
         try:
-            df = loader(dataset)
+            df = load_table(dataset)
             global ans
-            lead = """def answer(df):\n return """
+            lead = "def"
+            function_body = response.split("def")[1].split("return")[0]
+            return_statement = response.split("def")[1].split("return")[1].strip()
+            
             exec_string = (
                 lead
-                + response.split("return")[1].split("\n")[0].strip().replace("[end of text]", "")
-                + "\nans = answer(df)"
+                + function_body
+                + f"return {return_statement}\n"
+                + "ans = answer(df)"
             )
             local_vars = {"df": df, "pd": pd, "np": np}
             exec(exec_string, local_vars)
-
             ans = local_vars['ans']
             if isinstance(ans, pd.Series):
                 ans = ans.tolist()
@@ -152,4 +162,52 @@ class CodeBased(PromptGenModel):
                 ans = ans.iloc[:, 0].tolist()
             return ans.split('\n')[0] if '\n' in str(ans) else ans
         except Exception as e:
+            print(e)
             return f"__CODE_ERROR__: {e}"
+        
+
+# from databench_eval import Runner, Evaluator
+# from completion import call_llm
+# from datasets import Dataset
+
+
+# qa_df = pd.DataFrame()
+
+
+
+# # Convert to Dataset
+# qa = Dataset.from_pandas(qa_df.head(100))
+# evaluator = Evaluator(qa=qa)
+
+
+# def load_table(dataset):
+#     return pd.read_parquet(f"/Users/takumi/class/CSC-306/coding/Project Fin/CSC306_Final_Project/semeval_test/066_IBM_HR/all.parquet")
+
+
+# def load_sample(dataset):
+#     return pd.read_parquet(f"/Users/takumi/class/CSC-306/coding/Project Fin/CSC306_Final_Project/semeval_test/066_IBM_HR/sample.parquet")
+
+# model=CodeBased()
+# runner = Runner(
+#     model_call = call_llm,
+#     prompt_generator = model.generate_prompt,
+#     qa=qa,
+#     postprocess=lambda response, dataset: model.postprocess(
+#         response, dataset, load_table
+#     ),
+#     batch_size=10,
+# )
+# runner_lite = Runner(
+#     model_call = call_llm,
+#     prompt_generator = model.generate_prompt,
+#     qa=qa,
+#     postprocess=lambda response, dataset: model.postprocess(
+#         response, dataset, load_sample
+#     ),
+#     batch_size=10,
+# )
+
+# responses = runner.run(save="predictions.txt")
+# responses_lite = runner_lite.run(save="predictions_lite.txt")
+# print(f"DataBench accuracy is {evaluator.eval(responses)}")
+# print(f"DataBench_lite accuracy is {evaluator.eval(responses_lite, lite=True)}")

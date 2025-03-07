@@ -69,6 +69,9 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
         model_call = call_llm,
         prompt_generator = model.generate_prompt,
         qa=qa,
+        postprocess=lambda response, dataset: model.postprocess(
+            response, dataset
+        ),
         batch_size=10,
     )
 

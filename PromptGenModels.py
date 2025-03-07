@@ -1,11 +1,10 @@
 from Model import Model
 from abc import abstractmethod
 import pandas as pd
-import numpy as np
 from dotenv import get_key
-from databench_eval.utils import load_sample
 from completion import call_llm
-
+from databench_eval.utils import load_sample, load_table
+import numpy as np
 
 test_path = get_key('.env', 'TEST_PATH')
 
@@ -19,11 +18,19 @@ if test_path == None:
             )
         )
 
-def our_load_sample(name: any) -> pd.DataFrame:
+def our_load_sample(name: str) -> pd.DataFrame:
     try:
-        load_sample(name)
+        toReturn = load_sample(name)
     except:
-        return pd.read_parquet(f"{test_path}{name}/sample.parquet")
+        toReturn = pd.read_parquet(f"{test_path}{name}/sample.parquet")
+    return toReturn
+    
+def our_load_table(name: str) -> pd.DataFrame:
+    try:
+        toReturn = load_table(name)
+    except:
+        toReturn = pd.read_parquet(f"{test_path}{name}/all.parquet")
+    return toReturn
     
 class PromptGenModel(Model):
 
@@ -37,12 +44,10 @@ class PromptGenModel(Model):
         @param table: The table in question
         @return: a string prompt
         '''
-        dataset = row["dataset"]
-        question = row["question"]
-
         pass
 
-    def postprocess(self, response: str, row: dict): 
+    @abstractmethod
+    def postprocess(self, response: str, dataset: str, load_func):
         pass
 
 class CompetitionBaseline(PromptGenModel):
@@ -79,71 +84,92 @@ class CompetitionBaseline(PromptGenModel):
             df.columns = {list(df.columns)}
             return"""
 
+    def postprocess(self, response, dataset, load_func):
+        return super().postprocess(response, dataset, load_func)
+
 class ZiCL(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
         df = our_load_sample(dataset)
-        return """
-        You are an assistant tasked with answer-
-        ing the questions asked of a given CSV in
-        JSON format. You must answer in a single
-        JSON with three fields:
-        * "answer": answer using information from
-        the provided CSV only.
-        * "columns_used": list of columns from the
-        CSV used to get the answer.
-        * "explanation": A short explanation on why
-        you gave that answer.
-        Requirements:
-        * Only respond with the JSON.
-        In the following CSV
-        “csv
-        passenger,wealth($)
-        value1,value2.
-        “
-        USER: What is the name of the richest pas-
-        senger?
-        ASSISTANT: {"answer:̈
-        """
+        return f"""
+        You are a pandas code generator. Your goal is to complete the function provided.
+        * You must not write any more code apart from that.
+        * You only have access to pandas and numpy.
+        * Pay attention to the type formatting.
+        * You cannot read files from disk.
+        * The answer should be short and concise, in the format I specify.
+        * DO NOT do anything else other than filling the function provided.
+        * Answer in one of the following formats, depending on the question
+            1. True/False (do not answer with np.True_ or np.False_, but rather True or False)
+            2. with a value from the dataframe, (category/number)
+            3. with a list of values (either categories or numbers)
+
+        import pandas as pd
+        import numpy as np
+
+        # This is an example
+        def example(df: pd.DataFrame):
+            '''Returns the answer to the question: How many rows are there in the dataframe? '''
+            df.columns = {list(df.columns)}
+            return df.shape[0]
+
+        # This is the question you have to answer
+        def answer(df: pd.DataFrame):
+            '''Returns the answer to the question: {question} '''
+            df.columns = {list(df.columns)}
+            return"""
+    
+    def postprocess(self, row, dataset, load_func):
+        return super().postprocess(row, dataset, load_func)
     
 class CodeBased(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
+        print("------------------------")
+        print(dataset)
         df = our_load_sample(dataset)
-
+        print(question)
         datatypes = ""
         for column, dtype in df.dtypes.items():
-            datatypes += (f"'{column}' dtype('{dtype}')\n")
+            datatypes.join(f"'{column}' dtype('{dtype}')\n")
 
         toReturn = f'''
         You are a pandas code generator. Your goal is to complete the function provided.
-        * You must not write any more code apart from that.
-        * You only have access to pandas and numpy.
-        * You only generate one function
         * Pay attention to the type formatting.
-        * You cannot read files from disk.
+        * The answer should be short and concise, in the format I specify.
+        * DO NOT do anything else other than filling the function provided.
+        * DO NOT tag your response with markdown
 
-        The dtypes of the given input df are:\n
-        {datatypes}
-
-        You should complete the following code without changing it so that it gives the right answer for "{question}".
-        
-        # Code you need to complete
         import pandas as pd
         import numpy as np
-        def answer (df):
+
+        # This is an example
+        def example(df: pd.DataFrame):
+            """Returns the answer to the question: How many rows are there in the dataframe? """
+            df.columns = {list(df.columns)}
+            return df.shape[0]
+
+        import pandas as pd
+        import numpy as np
+        def answer (df: pd.DataFrame):
+            """
+            Returns: {question}
+            The columns are: {list(df.columns)}
+            The df dtypes are: {list(df.dtypes)}"""
+
             return 
         '''
+
         return toReturn
     
 
-    def postprocess(self, response: str, dataset: str, load_table=our_load_sample, max_retries=3):
+    def postprocess(self, response: str, dataset: str, load_func, max_retries=3):
         try:
-            df = load_table(dataset)
+            df = load_func(dataset)
             global ans
             lead = "def"
             

@@ -67,7 +67,7 @@ def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: 
         model_call = call_llm,
         prompt_generator = model.generate_prompt,
         postprocess=lambda response, dataset: model.postprocess(
-            response, dataset, load_func=our_load_table
+            response, dataset, load_func=our_load_table, max_retries=0
         ),
         qa=eval_dataset,
         batch_size=10,
@@ -77,7 +77,7 @@ def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: 
         model_call = call_llm,
         prompt_generator = model.generate_prompt,
         postprocess=lambda response, dataset: model.postprocess(
-            response, dataset, load_func=our_load_sample
+            response, dataset, load_func=our_load_sample, max_retries=0
         ),
         qa=eval_dataset,
         batch_size=10,

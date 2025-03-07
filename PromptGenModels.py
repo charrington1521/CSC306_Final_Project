@@ -129,10 +129,10 @@ class CodeBased(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        print("------------------------")
-        print(dataset)
+        # print("------------------------")
+        # print(dataset)
         df = our_load_sample(dataset)
-        print(question)
+        # print(question)
         datatypes = ""
         for column, dtype in df.dtypes.items():
             datatypes.join(f"'{column}' dtype('{dtype}')\n")
@@ -169,30 +169,33 @@ class CodeBased(PromptGenModel):
 
     def postprocess(self, response: str, dataset: str, load_func, max_retries=3):
         try:
+            # print("-"*20)
+            # print(dataset)
             df = load_func(dataset)
             global ans
-            lead = "def"
-            
+            lead = "def answer(df):\n\treturn "
+            split_response = response.split("return")
+            if len(split_response) > 1:
+                response = split_response[1].strip()
             local_vars = {"df": df, "pd": pd, "np": np}
-            for attempt in range(max_retries):
-                function_body = response.split("def")[1].split("return")[0]
-                return_statement = response.split("def")[1].split("return")[1].strip()
+            for attempt in range(max_retries+1):
                 exec_string = (
                     lead
-                    + function_body
-                    + f"return {return_statement}\n"
-                    + "ans = answer(df)"
+                    + response
+                    + "\nans = answer(df)"
                 )
+                # print(exec_string)
                 try:
                     exec(exec_string, local_vars)
                     break
                 except Exception as e:
-                    if attempt < max_retries - 1:
+                    if attempt <= max_retries - 1:
                         # rint(f"Execution failed (attempt {attempt+1}): {str(e)}")
                         response = self.fixerror(exec_string, e, df)
                     else:
                         return f"__CODE_ERROR__: {e}"
             ans = local_vars['ans']
+            # print(ans)
             if isinstance(ans, pd.Series):
                 ans = ans.tolist()
             elif isinstance(ans, pd.DataFrame):

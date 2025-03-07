@@ -1,7 +1,6 @@
 from datasets import load_dataset, DatasetDict, Dataset
 from databench_eval import Runner, Evaluator
-from databench_eval.utils import load_qa, load_table, load_sample
-from PromptGenModels import PromptGenModel
+from PromptGenModels import PromptGenModel, our_load_sample, our_load_table
 from completion import call_llm
 from dotenv import get_key
 from os import getcwd
@@ -52,12 +51,11 @@ qa_df["sample_answer"] = sample_answers
 qa_df["type"] = semantics
 
 ### Evaluation Implementation #################################################
-qa = Dataset.from_pandas(qa_df)
-evaluator = Evaluator(qa=qa)
+qa_test = Dataset.from_pandas(qa_df)
 
 #@TODO: allow evaluate model to use datasets other than the test data
 #@TODO: custom save_path as an argument instead?
-def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[str]:
+def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: bool = False) -> List[str]:
     '''Returns a list of responses by a PromptGenerationModel and 
     prints the performance of the responses on the test data.
     @param model: a PromptGenModel
@@ -68,27 +66,39 @@ def evaluate_promptGenModel(model: PromptGenModel, save: bool = False) -> List[s
     runner = Runner(
         model_call = call_llm,
         prompt_generator = model.generate_prompt,
-        qa=qa,
         postprocess=lambda response, dataset: model.postprocess(
-            response, dataset
+            response, dataset, load_func=our_load_table
         ),
+        qa=eval_dataset,
+        batch_size=10,
+    )
+
+    runner_lite = Runner(
+        model_call = call_llm,
+        prompt_generator = model.generate_prompt,
+        postprocess=lambda response, dataset: model.postprocess(
+            response, dataset, load_func=our_load_sample
+        ),
+        qa=eval_dataset,
         batch_size=10,
     )
 
     if save: #@TODO: add a runner_lite to follow submission format for task
         model_name = model.__class__.__name__
         path = f"{save_path}{model_name}_predictions.txt"
-        try:
-            with open(path, "w+") as f:
-                pass
-        except:
-            raise(f"""Ensure your save path is correct.\n
-                     Current Save path: {save_path}\n
-                     Ensure you have a "submissions" folder if 
-                     using the default save path""")
+        with open(path, "tr") as f:
+            pass
         responses = runner.run(save=path)
+        responses_lite = runner_lite.run(save=path)
+
     else:
         responses = runner.run()
-    
+        responses_lite = runner_lite.run()
+
+    evaluator = Evaluator(qa=eval_dataset)
     print(f"DataBench accuracy is {evaluator.eval(responses)}")
-    return responses
+    print(evaluator.evals)
+    print(f"DataBench lite accuracy is {evaluator.eval(responses_lite, lite=True)}")
+    print(evaluator.evals)
+
+    return responses, responses_lite

@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from dotenv import get_key
 from databench_eval.utils import load_sample
+from completion import call_llm
+
 
 test_path = get_key('.env', 'TEST_PATH')
 
@@ -139,22 +141,31 @@ class CodeBased(PromptGenModel):
         return toReturn
     
 
-    def postprocess(self, response: str, dataset: str, load_table=our_load_sample):
+    def postprocess(self, response: str, dataset: str, load_table=our_load_sample, max_retries=3):
         try:
             df = load_table(dataset)
             global ans
             lead = "def"
-            function_body = response.split("def")[1].split("return")[0]
-            return_statement = response.split("def")[1].split("return")[1].strip()
             
-            exec_string = (
-                lead
-                + function_body
-                + f"return {return_statement}\n"
-                + "ans = answer(df)"
-            )
             local_vars = {"df": df, "pd": pd, "np": np}
-            exec(exec_string, local_vars)
+            for attempt in range(max_retries):
+                function_body = response.split("def")[1].split("return")[0]
+                return_statement = response.split("def")[1].split("return")[1].strip()
+                exec_string = (
+                    lead
+                    + function_body
+                    + f"return {return_statement}\n"
+                    + "ans = answer(df)"
+                )
+                try:
+                    exec(exec_string, local_vars)
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        # rint(f"Execution failed (attempt {attempt+1}): {str(e)}")
+                        response = self.fixerror(exec_string, e, df)
+                    else:
+                        return f"__CODE_ERROR__: {e}"
             ans = local_vars['ans']
             if isinstance(ans, pd.Series):
                 ans = ans.tolist()
@@ -162,9 +173,36 @@ class CodeBased(PromptGenModel):
                 ans = ans.iloc[:, 0].tolist()
             return ans.split('\n')[0] if '\n' in str(ans) else ans
         except Exception as e:
-            print(e)
-            return f"__CODE_ERROR__: {e}"
+            return f"error: {e}"
         
+    def fixerror(self, code: str, error: str, df: pd.DataFrame):
+        datatypes = ""
+        for column, dtype in df.dtypes.items():
+            datatypes += (f"'{column}' dtype('{dtype}')\n")
+        prompt =f"""
+        A code and error for the code are the following. Please fix the error and give only the fixed code as output.
+        * You only have access to pandas and numpy.
+        * You only generate one function
+        * Pay attention to the type formatting.
+        * You cannot read files from disk.
+        * You only generate the code. No need sample data or anything else.
+
+        #Code
+        {code}
+
+        #Error
+        {error}
+
+        #Additional Info
+        The given parameter for the function, df, is consisted of the following datatypes.
+        {datatypes}
+
+        #Output (complete this and return only this)
+        def answer(df):
+        """
+
+        return call_llm([prompt])[0]
+
 
 # from databench_eval import Runner, Evaluator
 # from completion import call_llm

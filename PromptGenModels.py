@@ -2,7 +2,7 @@ from Model import Model
 from abc import abstractmethod
 import pandas as pd
 from dotenv import get_key
-from completion import call_llm
+from completion import call_llm_gpt3_5, call_llm_gpt4o_mini
 from databench_eval.utils import load_sample, load_table
 import numpy as np
 
@@ -219,7 +219,7 @@ class CodeBased(PromptGenModel):
         def answer(df):
         """
 
-        return call_llm([prompt])[0]
+        return call_llm_gpt3_5([prompt])[0]
     
     # This is the Few Shot In Context Learning Model.
     class FiCL(PromptGenModel):

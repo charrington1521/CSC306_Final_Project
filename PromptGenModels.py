@@ -1,5 +1,5 @@
 from Model import Model
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import pandas as pd
 from dotenv import get_key
 from completion import call_gpt3_5
@@ -35,11 +35,7 @@ def our_load_table(name: str) -> pd.DataFrame:
         toReturn = pd.read_parquet(f"{test_path}{name}/all.parquet")
     return toReturn
     
-class PromptGenModel(Model):
-
-    def __init__(self):
-        pass
-
+class PromptGenModel(ABC):
     @abstractmethod
     def generate_prompt(self, row: dict) -> str:
         '''Given a question and a table outputs a prompt
@@ -86,7 +82,6 @@ class CompetitionBaseline(PromptGenModel):
             '''Returns the answer to the question: {question} '''
             df.columns = {list(df.columns)}
             return"""
-
     def postprocess(self, response, dataset, load_func):
         return super().postprocess(response, dataset, load_func)
 
@@ -121,16 +116,14 @@ class ZiCL(PromptGenModel):
     
 class CodeBased(PromptGenModel):
 
+    def __init__(self, num_retries=0):
+        super().__init__()
+        self._num_retries = num_retries
+
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        print("------------------------")
-        print(dataset)
         df = our_load_sample(dataset)
-        print(question)
-        datatypes = ""
-        for column, dtype in df.dtypes.items():
-            datatypes.join(f"'{column}' dtype('{dtype}')\n")
 
         toReturn = f'''
         You are a pandas code generator. Your goal is to complete the function provided.
@@ -160,41 +153,6 @@ class CodeBased(PromptGenModel):
         '''
 
         return toReturn
-    
-
-    def postprocess(self, response: str, dataset: str, load_func, max_retries=3):
-        try:
-            df = load_func(dataset)
-            global ans
-            lead = "def"
-            
-            local_vars = {"df": df, "pd": pd, "np": np}
-            for attempt in range(max_retries):
-                function_body = response.split("def")[1].split("return")[0]
-                return_statement = response.split("def")[1].split("return")[1].strip()
-                exec_string = (
-                    lead
-                    + function_body
-                    + f"return {return_statement}\n"
-                    + "ans = answer(df)"
-                )
-                try:
-                    exec(exec_string, local_vars)
-                    break
-                except Exception as e:
-                    if attempt < max_retries - 1:
-                        # rint(f"Execution failed (attempt {attempt+1}): {str(e)}")
-                        response = self.fixerror(exec_string, e, df)
-                    else:
-                        return f"__CODE_ERROR__: {e}"
-            ans = local_vars['ans']
-            if isinstance(ans, pd.Series):
-                ans = ans.tolist()
-            elif isinstance(ans, pd.DataFrame):
-                ans = ans.iloc[:, 0].tolist()
-            return ans.split('\n')[0] if '\n' in str(ans) else ans
-        except Exception as e:
-            return f"error: {e}"
         
     def fixerror(self, code: str, error: str, df: pd.DataFrame):
         datatypes = ""
@@ -224,44 +182,78 @@ class CodeBased(PromptGenModel):
 
         return call_gpt3_5([prompt])[0]
     
-    # This is the Few Shot In Context Learning Model.
-    class FiCL(PromptGenModel):
-
-        def generate_prompt(self, row: dict) -> str:
-            dataset = row["dataset"]
-            question = row["question"]
-            df = our_load_sample(dataset)
-            return f"""
-            You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
-            You must answer in a single JSON with three fields:
-            * "answer": answer using information from the provided CSV only.
-            * "columns_used": list of columns from the CSV used to get the answer.
-            * "explanation": A short explanation on why you gave that answer.
+    def postprocess(self, response: str, dataset: str, load_func):
+        try:
+            df = load_func(dataset)
+            global ans
+            lead = "def answer():\n\t"
             
-            Requirements:
-            * Only respond with the JSON
+            local_vars = {"df": df, "pd": pd, "np": np}
+            for attempt in range(self._num_retries+1):
 
-            In the following CSV
-            “csv
-            passenger, wealth($)
-            value1,value2.
-            “
+                response_split = response.split("return")
+                if len(response_split) > 1:
+                    response = response_split[1].strip()
+                exec_string = (
+                    lead
+                    + f"return {response}\n"
+                    + "ans = answer()"
+                )
+                try:
+                    exec(exec_string, local_vars)
+                    break
+                except Exception as e:
+                    if attempt <= self._num_retries - 1:
+                        response = self.fixerror(exec_string, e, df)
+                    else:
+                        return f"__CODE_ERROR__: {e}"
+            ans = local_vars['ans']
+            if isinstance(ans, pd.Series):
+                ans = ans.tolist()
+            elif isinstance(ans, pd.DataFrame):
+                ans = ans.iloc[:, 0].tolist()
+            return ans.split('\n')[0] if '\n' in str(ans) else ans
+        except Exception as e:
+            return f"error: {e}"
+    
+# This is the Few Shot In Context Learning Model.
+class FiCL(PromptGenModel):
 
-            USER: What is the name of the richest passenger?
-            ASSISTANT: {{answer
+    def generate_prompt(self, row: dict) -> str:
+        dataset = row["dataset"]
+        question = row["question"]
+        df = our_load_sample(dataset)
+        return f"""
+        You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
+        You must answer in a single JSON with three fields:
+        * "answer": answer using information from the provided CSV only.
+        * "columns_used": list of columns from the CSV used to get the answer.
+        * "explanation": A short explanation on why you gave that answer.
+        
+        Requirements:
+        * Only respond with the JSON
 
-            Consider this example to help you out:
+        In the following CSV
+        “csv
+        passenger, wealth($)
+        value1,value2.
+        “
 
-            “csv
-            student, GPA
-            Alice, 4.0
-            Bob, 3.5
-            Charlie, 2.7
-            “
+        USER: What is the name of the richest passenger?
+        ASSISTANT: {{answer
 
-            USER: What is the average GPA of the students?
-            ASSISTANT: The average GPA is 3.4.
-            """
+        Consider this example to help you out:
+
+        “csv
+        student, GPA
+        Alice, 4.0
+        Bob, 3.5
+        Charlie, 2.7
+        “
+
+        USER: What is the average GPA of the students?
+        ASSISTANT: The average GPA is 3.4.
+        """
     
     def postprocess(self, row, dataset, load_func):
         return super().postprocess(row, dataset, load_func)

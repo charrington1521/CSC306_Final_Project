@@ -2,9 +2,12 @@ from Model import Model
 from abc import abstractmethod
 import pandas as pd
 from dotenv import get_key
-from completion import call_llm_gpt3_5, call_llm_gpt4o_mini
+from completion import call_gpt3_5
 from databench_eval.utils import load_sample, load_table
 import numpy as np
+
+from sammo.instructions import Section, Paragraph, InputData
+from sammo.search_op import one_of
 
 test_path = get_key('.env', 'TEST_PATH')
 
@@ -219,7 +222,7 @@ class CodeBased(PromptGenModel):
         def answer(df):
         """
 
-        return call_llm_gpt3_5([prompt])[0]
+        return call_gpt3_5([prompt])[0]
     
     # This is the Few Shot In Context Learning Model.
     class FiCL(PromptGenModel):

@@ -1,7 +1,7 @@
 from datasets import load_dataset, DatasetDict, Dataset
 from databench_eval import Runner, Evaluator
 from PromptGenModels import PromptGenModel, our_load_sample, our_load_table
-from completion import call_llm_gpt3_5, call_llm_gpt4o_mini
+from completion import call_gpt3_5, call_gpt4o_mini
 from dotenv import get_key
 from os import getcwd
 import pandas as pd
@@ -46,16 +46,16 @@ try:
 except:
     raise(Exception(f"Could not find test_qa.csv at the test path {test_path}. Double check your .env file."))
 
-qa_df["answer"] = answers
+qa_df["answer"]        = answers
 qa_df["sample_answer"] = sample_answers
-qa_df["type"] = semantics
+qa_df["type"]          = semantics
 
 ### Evaluation Implementation #################################################
 qa_test = Dataset.from_pandas(qa_df)
 
 #@TODO: allow evaluate model to use datasets other than the test data
 #@TODO: custom save_path as an argument instead?
-def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: bool = False, save_edition: str = "", llm_call=call_llm_gpt3_5) -> List[str]:
+def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: bool = False, save_edition: str = "", llm_call=call_gpt3_5) -> List[str]:
     '''Returns a list of responses by a PromptGenerationModel and 
     prints the performance of the responses on the test data.
     @param model: a PromptGenModel

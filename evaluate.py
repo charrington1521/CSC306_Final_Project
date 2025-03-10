@@ -55,7 +55,7 @@ qa_test = Dataset.from_pandas(qa_df)
 
 #@TODO: allow evaluate model to use datasets other than the test data
 #@TODO: custom save_path as an argument instead?
-def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: bool = False, llm_call=call_llm_gpt3_5) -> List[str]:
+def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: bool = False, save_edition: str = "", llm_call=call_llm_gpt3_5) -> List[str]:
     '''Returns a list of responses by a PromptGenerationModel and 
     prints the performance of the responses on the test data.
     @param model: a PromptGenModel
@@ -85,8 +85,8 @@ def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: 
 
     if save: #@TODO: add a runner_lite to follow submission format for task
         model_name = model.__class__.__name__
-        path = f"{save_path}{model_name}_predictions.txt"
-        with open(path, "w  +") as f:
+        path = f"{save_path}{model_name}{save_edition}_predictions.txt"
+        with open(path, "w+") as f:
             pass
         responses = runner.run(save=path)
         responses_lite = runner_lite.run(save=path)

@@ -224,7 +224,7 @@ class FiCL(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = self.load_func(dataset)
+        df = self.load_func(dataset).to_csv()
         return f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
         You must answer in a single JSON with three fields:
@@ -234,15 +234,6 @@ class FiCL(PromptGenModel):
         
         Requirements:
         * Only respond with the JSON
-
-        In the following CSV
-        “csv
-        passenger, wealth($)
-        value1,value2.
-        “
-
-        USER: What is the name of the richest passenger?
-        ASSISTANT: {{answer
 
         Consider this example to help you out:
 
@@ -254,56 +245,78 @@ class FiCL(PromptGenModel):
         “
 
         USER: What is the average GPA of the students?
-        ASSISTANT: The average GPA is 3.4.
+        ASSISTANT: 
+            {{
+                "answer": 3.4,
+                "columns_used": GPA,
+                "explanation": None
+            }}
+
+        In the following CSV: 
+        
+        "csv
+        {df}
+        "
+
+        USER: {question}
+        ASSISTANT: {{
         """
     
     def postprocess(self, response, dataset, load_func):
-        return super().postprocess(response, dataset, load_func)
+        if response[:9] == "__Error__":
+            return {"answer": response}
+        response_dict = json.loads("{" + response)
+        return response_dict["answer"]
 
-    # This is the Chain of Thought model.
-    class CoT(PromptGenModel):
+# This is the Chain of Thought model.
+class CoT(PromptGenModel):
 
-        def generate_prompt(self, row: dict) -> str:
-            dataset = row["dataset"]
-            question = row["question"]
-            df = self.load_func(dataset)
-            return f"""
-            You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
-            You must answer in a single JSON with three fields:
-            * "answer": answer using information from the provided CSV only.
-            * "columns_used": list of columns from the CSV used to get the answer.
-            * "explanation": A short explanation on why you gave that answer.
-            
-            Requirements:
-            * Only respond with the JSON
+    def generate_prompt(self, row: dict) -> str:
+        dataset = row["dataset"]
+        question = row["question"]
+        df = self.load_func(dataset).to_csv()
+        return f"""
+        You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
+        You must answer in a single JSON with three fields:
+        * "answer": answer using information from the provided CSV only.
+        * "columns_used": list of columns from the CSV used to get the answer.
+        * "explanation": A short explanation on why you gave that answer.
+        
+        Requirements:
+        * Only respond with the JSON
 
-            In the following CSV
-            “csv
-            passenger, wealth($)
-            value1,value2.
-            “
+        Consider this example to help you out:
 
-            USER: What is the name of the richest passenger?
-            ASSISTANT: {{answer
+        “csv
+        student, GPA
+        Alice, 4.0
+        Bob, 3.5
+        Charlie, 2.7
+        “
 
-            Consider this example to help you out:
+        USER: What is the average GPA of the students?
+        ASSISTANT: 
+            {{
+                "answer": 3.4,
+                "columns_used": ["GPA"],
+                "explanation": "First you calculate the sum of all GPAs's which is 10.2. Then you get the total number of students which is 3. Then you divide sum of all GPA's by number of students which is 10.2/3=3.4"
+            }}
+        
+        In the following CSV:
 
-            “csv
-            student, GPA
-            Alice, 4.0
-            Bob, 3.5
-            Charlie, 2.7
-            “
+        “csv
+        {df}
+        “
 
-            USER: What is the average GPA of the students?
-            ASSISTANT: The average GPA is 3.4. Here is how I calculated it:
-            First you calculate the sum of all GPAs's which is 10.2
-            Then you get the total number of students which is 3
-            Then you divide sum of all GPA's by number of students which is 10.2/3=3.4
-            """
-    
-    def postprocess(self, response, dataset, load_func):
-        return super().postprocess(response, dataset, load_func)
+        USER: {question}
+        ASSISTANT: {{
+        """
+
+def postprocess(self, response, dataset, load_func):
+    if response[:9] == "__Error__":
+        return {"answer": response}
+    response_dict = json.loads("{" + response)
+    return response_dict["answer"]
 
 
 # from databench_eval import Runner, Evaluator

@@ -7,6 +7,10 @@ from os import getcwd
 import pandas as pd
 from typing import List
 
+'''
+NOTICE: See the updates to the README as of "A ready to use BeamSearch!?!"
+'''
+
 ### Load Environment Variables ################################################
 test_path = get_key('.env', 'TEST_PATH')
 

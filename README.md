@@ -104,3 +104,15 @@ This file comes from the last project. It is only added so that we can check our
 
 #TODO Whitelist the gitignore file
 
+### Sammo BeamSearch Issue
+
+There is a issue with compatibility of our python version and the packages and type hinting used in the search.py file included with sammo. 
+When running PromptGenBeamSearch one will need to navigate to 
+"path_to_venv/lib/python3.9/site-packages/sammo/seach.py". On line 30 add ``` from typing import Optional, Union ```. 
+- Use ctrl-f to locate all uses of the "|" operator. 
+- Replace uses of the pipe operator such as 
+``` Callable[[], Output] | None``` with ``` Optional[Callable[[], Output]]``` 
+and uses such as 
+``` str | Path ``` with ``` Union[str, Path] ```.
+- Note that on line **163** (or so) the pipe operator **SHOULD NOT** be replaced.
+

@@ -1,4 +1,3 @@
-from Model import Model
 from abc import ABC, abstractmethod
 import pandas as pd
 from dotenv import get_key

@@ -89,7 +89,7 @@ class ZiCL(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = our_load_sample(dataset)
+        df = our_load_sample(dataset).to_csv()
         return f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
         You must answer in a single JSON with three fields:
@@ -100,13 +100,9 @@ class ZiCL(PromptGenModel):
         Requirements:
         * Only respond with the JSON
 
-        In the following CSV
-        “csv
-        passenger, wealth($)
-        value1,value2.
-        “
+        In the following CSV: {df}
 
-        USER: What is the name of the richest passenger?
+        USER: {question}
         ASSISTANT: {{answer
         """
     

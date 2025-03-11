@@ -85,6 +85,7 @@ def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: 
         ),
         qa=eval_dataset,
         batch_size=10,
+        load_func=our_load_sample
     )
 
     if save: #@TODO: add a runner_lite to follow submission format for task
@@ -95,8 +96,10 @@ def evaluate_promptGenModel(model: PromptGenModel, eval_dataset: Dataset, save: 
             pass
         with open(path_lite, "w+") as f:
             pass
-        responses = runner.run(save=path)
-        responses_lite = runner_lite.run(save=path)
+        model.load_func = our_load_table
+        responses      = runner.run(save=path)
+        model.load_func = our_load_sample
+        responses_lite = runner_lite.run(save=path_lite)
 
     else:
         responses = runner.run()

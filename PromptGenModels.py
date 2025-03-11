@@ -4,6 +4,7 @@ from dotenv import get_key
 from completion import call_gpt3_5
 from databench_eval.utils import load_sample, load_table
 import numpy as np
+import json
 
 from sammo.instructions import Section, Paragraph, InputData
 from sammo.search_op import one_of
@@ -35,6 +36,9 @@ def our_load_table(name: str) -> pd.DataFrame:
     return toReturn
     
 class PromptGenModel(ABC):
+    def __init__(self, load_func=our_load_sample):
+        self.load_func = load_func
+
     @abstractmethod
     def generate_prompt(self, row: dict) -> str:
         '''Given a question and a table outputs a prompt
@@ -46,7 +50,7 @@ class PromptGenModel(ABC):
 
     @abstractmethod
     def postprocess(self, response: str, dataset: str, load_func):
-        pass
+        return response
 
 class CompetitionBaseline(PromptGenModel):
 
@@ -85,12 +89,11 @@ class CompetitionBaseline(PromptGenModel):
         return super().postprocess(response, dataset, load_func)
 
 class ZiCL(PromptGenModel):
-
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = our_load_sample(dataset).to_csv()
-        return f"""
+        df = self.load_func(dataset).to_csv()
+        toReturn = f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
         You must answer in a single JSON with three fields:
         * "answer": answer using information from the provided CSV only.
@@ -103,11 +106,15 @@ class ZiCL(PromptGenModel):
         In the following CSV: {df}
 
         USER: {question}
-        ASSISTANT: {{answer
+        ASSISTANT: {{
         """
+        return toReturn
     
-    def postprocess(self, row, dataset, load_func):
-        return super().postprocess(row, dataset, load_func)
+    def postprocess(self, response, dataset, load_func):
+        if response[:9] == "__Error__":
+            return {"answer": response}
+        response_dict = json.loads("{" + response)
+        return response_dict["answer"]
     
 class CodeBased(PromptGenModel):
 
@@ -118,7 +125,7 @@ class CodeBased(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = our_load_sample(dataset)
+        df = self.load_func(dataset)
 
         toReturn = f'''
         You are a pandas code generator. Your goal is to complete the function provided.
@@ -217,7 +224,7 @@ class FiCL(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        df = our_load_sample(dataset)
+        df = self.load_func(dataset)
         return f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
         You must answer in a single JSON with three fields:
@@ -250,8 +257,8 @@ class FiCL(PromptGenModel):
         ASSISTANT: The average GPA is 3.4.
         """
     
-    def postprocess(self, row, dataset, load_func):
-        return super().postprocess(row, dataset, load_func)
+    def postprocess(self, response, dataset, load_func):
+        return super().postprocess(response, dataset, load_func)
 
     # This is the Chain of Thought model.
     class CoT(PromptGenModel):
@@ -259,7 +266,7 @@ class FiCL(PromptGenModel):
         def generate_prompt(self, row: dict) -> str:
             dataset = row["dataset"]
             question = row["question"]
-            df = our_load_sample(dataset)
+            df = self.load_func(dataset)
             return f"""
             You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
             You must answer in a single JSON with three fields:
@@ -295,8 +302,8 @@ class FiCL(PromptGenModel):
             Then you divide sum of all GPA's by number of students which is 10.2/3=3.4
             """
     
-    def postprocess(self, row, dataset, load_func):
-        return super().postprocess(row, dataset, load_func)
+    def postprocess(self, response, dataset, load_func):
+        return super().postprocess(response, dataset, load_func)
 
 
 # from databench_eval import Runner, Evaluator

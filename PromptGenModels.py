@@ -6,6 +6,8 @@ from databench_eval.utils import load_sample, load_table
 import numpy as np
 import json
 
+import re
+
 from sammo.instructions import Section, Paragraph, InputData
 from sammo.search_op import one_of
 
@@ -113,7 +115,19 @@ class ZiCL(PromptGenModel):
     def postprocess(self, response, dataset, load_func):
         if response[:9] == "__Error__":
             return {"answer": response}
-        response_dict = json.loads("{" + response)
+        print(response)
+        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 1:
+            comma_locations = []
+            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
+                comma_locations.append(match.start())
+            
+            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
+        to_load = f"""{{\n{response.strip()}"""
+        try:
+            response_dict = json.loads(to_load)
+        except json.JSONDecodeError:
+            print(f"Post process could not properly parse {to_load}")
+            return "__Error__: JSONDecodeError"
         return response_dict["answer"]
     
 class CodeBased(PromptGenModel):
@@ -230,8 +244,8 @@ class FiCL(PromptGenModel):
         You must answer in a single JSON with three fields:
         * "answer": answer using information from the provided CSV only.
         * "columns_used": list of columns from the CSV used to get the answer.
-        * "explanation": A short explanation on why you gave that answer.
-        
+        * Do NOT include commas in numerical answers
+
         Requirements:
         * Only respond with the JSON
 
@@ -248,8 +262,7 @@ class FiCL(PromptGenModel):
         ASSISTANT: 
             {{
                 "answer": 3.4,
-                "columns_used": GPA,
-                "explanation": None
+                "columns_used": ["GPA"],
             }}
 
         In the following CSV: 
@@ -265,7 +278,19 @@ class FiCL(PromptGenModel):
     def postprocess(self, response, dataset, load_func):
         if response[:9] == "__Error__":
             return {"answer": response}
-        response_dict = json.loads("{" + response)
+        print(response)
+        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 1:
+            comma_locations = []
+            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
+                comma_locations.append(match.start())
+            
+            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
+        to_load = f"""{{\n{response.strip()}"""
+        try:
+            response_dict = json.loads(to_load)
+        except json.JSONDecodeError:
+            print(f"Post process could not properly parse {to_load}")
+            return "__Error__: JSONDecodeError"
         return response_dict["answer"]
 
 # This is the Chain of Thought model.
@@ -274,6 +299,7 @@ class CoT(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
+        print(dataset + ": " + question)
         df = self.load_func(dataset).to_csv()
         return f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
@@ -312,11 +338,22 @@ class CoT(PromptGenModel):
         ASSISTANT: {{
         """
 
-def postprocess(self, response, dataset, load_func):
-    if response[:9] == "__Error__":
-        return {"answer": response}
-    response_dict = json.loads("{" + response)
-    return response_dict["answer"]
+    def postprocess(self, response, dataset, load_func):
+        if response[:9] == "__Error__":
+            return {"answer": response}
+        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 2:
+            comma_locations = []
+            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
+                comma_locations.append(match.start())
+            
+            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
+        to_load = f"""{{\n{response.strip()}"""
+        try:
+            response_dict = json.loads(to_load)
+        except json.JSONDecodeError:
+            return "__Error__: JSONDecodeError"
+        return response_dict["answer"]
+
 
 
 # from databench_eval import Runner, Evaluator

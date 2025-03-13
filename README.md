@@ -101,10 +101,26 @@ This file comes from [this link](https://github.com/jorses/databench_eval/blob/m
 
 This file comes from the last project. It is only added so that we can check our usage.
 
-
+### 2- Improvements
 #TODO Whitelist the gitignore file
 
-### Sammo BeamSearch Issue
+
+#### FiCL (few-shots in Context Learning) model
+
+This is the model with the few-shots prompting and defined as *class FiCL(PromptGenModel)* in "PromptGenModels.py".
+
+#### CoT (Chain of Thought) model
+
+This is the model with the chain of thought strategy, and defined as *class CoT(PromptGenModel)* in "PromptGenModels.py".
+
+#### Code-based with fixerror function model
+
+This is the advanced code-based model that has a function to fix erros which happens on the generated code. 
+This is defined as *class CoT(PromptGenModel)* in "PromptGenModels.py".
+
+#### SAMMO model
+
+##### Sammo BeamSearch Issue
 
 There is a issue with compatibility of our python version and the packages and type hinting used in the search.py file included with sammo. 
 When running PromptGenBeamSearch one will need to navigate to 

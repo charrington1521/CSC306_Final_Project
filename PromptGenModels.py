@@ -6,22 +6,21 @@ from databench_eval.utils import load_sample, load_table
 import numpy as np
 import json
 
-import re
-
 from sammo.instructions import Section, Paragraph, InputData
 from sammo.search_op import one_of
 
 test_path = get_key('.env', 'TEST_PATH')
 
 if test_path == None:
-    raise(
+    raise (
         Exception(
             '''No test path has been defined. Download the test data at 
             https://drive.google.com/file/d/1IpSi0gNPYj9a9lNbWPsL3TxIBILoLsfE/
             view and add the path to it to your .env file.
             '''
-            )
         )
+    )
+
 
 def our_load_sample(name: str) -> pd.DataFrame:
     try:
@@ -29,14 +28,16 @@ def our_load_sample(name: str) -> pd.DataFrame:
     except:
         toReturn = pd.read_parquet(f"{test_path}{name}/sample.parquet")
     return toReturn
-    
+
+
 def our_load_table(name: str) -> pd.DataFrame:
     try:
         toReturn = load_table(name)
     except:
         toReturn = pd.read_parquet(f"{test_path}{name}/all.parquet")
     return toReturn
-    
+
+
 class PromptGenModel(ABC):
     def __init__(self, load_func=our_load_sample):
         self.load_func = load_func
@@ -54,13 +55,14 @@ class PromptGenModel(ABC):
     def postprocess(self, response: str, dataset: str, load_func):
         return response
 
+
 class CompetitionBaseline(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
-            dataset = row["dataset"]
-            question = row["question"]
-            df = our_load_sample(dataset)
-            return f"""
+        dataset = row["dataset"]
+        question = row["question"]
+        df = our_load_sample(dataset)
+        return f"""
         You are a pandas code generator. Your goal is to complete the function provided.
         * You must not write any more code apart from that.
         * You only have access to pandas and numpy.
@@ -87,8 +89,10 @@ class CompetitionBaseline(PromptGenModel):
             '''Returns the answer to the question: {question} '''
             df.columns = {list(df.columns)}
             return"""
+
     def postprocess(self, response, dataset, load_func):
         return super().postprocess(response, dataset, load_func)
+
 
 class ZiCL(PromptGenModel):
     def generate_prompt(self, row: dict) -> str:
@@ -111,25 +115,14 @@ class ZiCL(PromptGenModel):
         ASSISTANT: {{
         """
         return toReturn
-    
+
     def postprocess(self, response, dataset, load_func):
         if response[:9] == "__Error__":
             return {"answer": response}
-        print(response)
-        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 1:
-            comma_locations = []
-            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
-                comma_locations.append(match.start())
-            
-            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
-        to_load = f"""{{\n{response.strip()}"""
-        try:
-            response_dict = json.loads(to_load)
-        except json.JSONDecodeError:
-            print(f"Post process could not properly parse {to_load}")
-            return "__Error__: JSONDecodeError"
+        response_dict = json.loads("{" + response)
         return response_dict["answer"]
-    
+
+
 class CodeBased(PromptGenModel):
 
     def __init__(self, num_retries=0):
@@ -169,12 +162,12 @@ class CodeBased(PromptGenModel):
         '''
 
         return toReturn
-        
+
     def fixerror(self, code: str, error: str, df: pd.DataFrame):
         datatypes = ""
         for column, dtype in df.dtypes.items():
             datatypes += (f"'{column}' dtype('{dtype}')\n")
-        prompt =f"""
+        prompt = f"""
         A code and error for the code are the following. Please fix the error and give only the fixed code as output.
         * You only have access to pandas and numpy.
         * You only generate one function
@@ -197,13 +190,13 @@ class CodeBased(PromptGenModel):
         """
 
         return call_gpt3_5([prompt])[0]
-    
+
     def postprocess(self, response: str, dataset: str, load_func):
         try:
             df = load_func(dataset)
             global ans
             lead = "def answer():\n\t"
-            
+
             local_vars = {"df": df, "pd": pd, "np": np}
             for attempt in range(self._num_retries+1):
 
@@ -231,8 +224,10 @@ class CodeBased(PromptGenModel):
             return ans.split('\n')[0] if '\n' in str(ans) else ans
         except Exception as e:
             return f"error: {e}"
-    
+
 # This is the Few Shot In Context Learning Model.
+
+
 class FiCL(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
@@ -244,8 +239,8 @@ class FiCL(PromptGenModel):
         You must answer in a single JSON with three fields:
         * "answer": answer using information from the provided CSV only.
         * "columns_used": list of columns from the CSV used to get the answer.
-        * Do NOT include commas in numerical answers
-
+        * "explanation": A short explanation on why you gave that answer.
+        
         Requirements:
         * Only respond with the JSON
 
@@ -262,7 +257,8 @@ class FiCL(PromptGenModel):
         ASSISTANT: 
             {{
                 "answer": 3.4,
-                "columns_used": ["GPA"],
+                "columns_used": GPA,
+                "explanation": None
             }}
 
         In the following CSV: 
@@ -274,32 +270,21 @@ class FiCL(PromptGenModel):
         USER: {question}
         ASSISTANT: {{
         """
-    
+
     def postprocess(self, response, dataset, load_func):
         if response[:9] == "__Error__":
             return {"answer": response}
-        print(response)
-        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 1:
-            comma_locations = []
-            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
-                comma_locations.append(match.start())
-            
-            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
-        to_load = f"""{{\n{response.strip()}"""
-        try:
-            response_dict = json.loads(to_load)
-        except json.JSONDecodeError:
-            print(f"Post process could not properly parse {to_load}")
-            return "__Error__: JSONDecodeError"
+        response_dict = json.loads("{" + response)
         return response_dict["answer"]
 
 # This is the Chain of Thought model.
+
+
 class CoT(PromptGenModel):
 
     def generate_prompt(self, row: dict) -> str:
         dataset = row["dataset"]
         question = row["question"]
-        print(dataset + ": " + question)
         df = self.load_func(dataset).to_csv()
         return f"""
         You are an assistant tasked with answering the questions asked of a given CSV in JSON format.
@@ -338,22 +323,12 @@ class CoT(PromptGenModel):
         ASSISTANT: {{
         """
 
-    def postprocess(self, response, dataset, load_func):
-        if response[:9] == "__Error__":
-            return {"answer": response}
-        if len(re.findall(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response)) > 2:
-            comma_locations = []
-            for match in re.finditer(",(?=(?:[[{\n]*[]}\n]))|(?:(^[^{[\]}]+$))", response):
-                comma_locations.append(match.start())
-            
-            response = response[:comma_locations[-1]] + response[(comma_locations[-1]+1):]
-        to_load = f"""{{\n{response.strip()}"""
-        try:
-            response_dict = json.loads(to_load)
-        except json.JSONDecodeError:
-            return "__Error__: JSONDecodeError"
-        return response_dict["answer"]
 
+def postprocess(self, response, dataset, load_func):
+    if response[:9] == "__Error__":
+        return {"answer": response}
+    response_dict = json.loads("{" + response)
+    return response_dict["answer"]
 
 
 # from databench_eval import Runner, Evaluator
@@ -362,7 +337,6 @@ class CoT(PromptGenModel):
 
 
 # qa_df = pd.DataFrame()
-
 
 
 # # Convert to Dataset

@@ -83,7 +83,7 @@ When complete it should match the form
 
 **PromptGenModel**
 
-The two baselines defined in the paper [TODO ADD PAPER LINK ](https://aclanthology.org/2024.lrec-main.1179/) are both
+The two baselines defined in the paper [this link](https://aclanthology.org/2024.lrec-main.1179/) are both
 prompt generation based models. That is, the models are given a question and a table and use the info to generate a prompt for an LLM. In our case this is hooked up to ChatGpt3.5-Turbo.
 This means all PromptGenerationModel models we create have a method "generate_prompt" that can be called during evaluation using tools provided by the shared task. This makes the task of implementing baselines straightforward: complete the "generate_prompt" methods.
 We will be doing this for the two baselines from the paper: Zero-shot In-Context Learning and Code Based. 

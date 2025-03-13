@@ -120,6 +120,8 @@ This is defined as *class CoT(PromptGenModel)* in "PromptGenModels.py".
 
 #### SAMMO model
 
+NOT COMPLETED
+
 ##### Sammo BeamSearch Issue
 
 There is a issue with compatibility of our python version and the packages and type hinting used in the search.py file included with sammo. 
